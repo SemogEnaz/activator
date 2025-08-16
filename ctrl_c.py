@@ -13,28 +13,32 @@ def get_output(cmd):
         print("irecovery not found. Install it (e.g., `sudo pacman -S libirecovery`).")
         sys.exit(127)
 
-def main():
-    out = get_output(["irecovery", "-q"])
-    # Examples we match:
+def get_ecid(out):
+    # Examples we match
     #   ECID: 000003C9A8F1234
     #   ECID: 1234567890123456
-    m = re.search(r"^ECID:\s*([0-9A-Fa-f]+|\d+)\s*$", out, re.MULTILINE)
-    if not m:
-        print("Could not find ECID. Is the iPhone in Recovery/DFU and detected by irecovery?")
-        print(out.strip())
+
+    ### ChatGPT gave me some regx, I don't think its working??
+    #return re.search(r"^ECID:\s*([0-9A-Fa-f]+|\d+)\s*$", out, re.MULTILINE)
+
+    ECID = None
+
+    try:
+        ECID_data = [line for line in out.split('\n') if 'ECID' in line].pop()
+        ECID = ECID_data.split().pop()
+    except IndexError:
+        raise ValueError('No ECID found :(')
         sys.exit(1)
 
-    token = m.group(1)
-    # Interpret as hex if it contains A–F, otherwise decimal
-    base = 16 if re.search(r"[A-Fa-f]", token) else 10
-    try:
-        ecid_int = int(token, base)
-    except ValueError:
-        print(f"Unrecognized ECID format: {token}")
-        sys.exit(2)
+    return ECID
 
-    print(f"ECID (hex): 0x{ecid_int:X}")
-    print(f"ECID (dec): {ecid_int}")
+def main():
+    out = get_output(["irecovery", "-q"])
+    ECID = get_ecid(out)
+
+    print(ECID)
+    
+
 
 if __name__ == "__main__":
     main()
